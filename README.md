@@ -161,18 +161,18 @@ this.demoTest = function (browser) {
 };
 ```
 
-#### navigate(selector, callback)
+#### browse(selector, callback)
 
-The `navigate` command initiates a `click` command on the supplied selector link, navigates to the URL, and then it initiates the `waitUntilMobified` function before it continues the chain of tests.
+The `browse` command initiates a `click` command on the supplied selector link, browses to the URL, and then it initiates the `waitUntilMobified` function before it continues the chain of tests.
 
 Parameter Name | Parameter Type | Description
 -------------  | -------------- | -----------
-selector       | String         | The CSS selector to click on to navigate to the new URL.
+selector       | String         | The CSS selector to click on to browse to the new URL.
 callback       | Function       | _optional_ A function to call after the current command finishes execution.  
 
 ```
 this.demoTest = function (browser) {
-    browser.navigate('.myLink');
+    browser.browse('.myLink');
 };
 ```
 
