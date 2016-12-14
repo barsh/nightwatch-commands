@@ -1,7 +1,7 @@
 var util = require('util'),
     events = require('events');
 
-var CommandAction = function() {
+var WaitForUrlToContain = function() {
     events.EventEmitter.call(this);
     this.startTimer = null;
     this.cb = null;
@@ -10,9 +10,18 @@ var CommandAction = function() {
     this.protocol = require('nightwatch/lib/api/protocol.js')(this.client);
 };
 
-util.inherits(CommandAction, events.EventEmitter);
+util.inherits(WaitForUrlToContain, events.EventEmitter);
 
-CommandAction.prototype.command = function(condition, milliseconds, timeout, messages, callback) {
+/**
+ * Waiting for url expected
+ * @param  {string} url [url expected to contain]
+ * @param  {number} milliseconds [total time until command times out]
+ * @param  {number} timeout [time to wait before command starts polling the URL]
+ * @param  {Object} messages [message output]
+ * @param  {Function} callback [callback]
+ * @return {[type]} [client]
+ */
+WaitForUrlToContain.prototype.command = function(url, milliseconds, timeout, messages, callback) {
 
     if (milliseconds && typeof milliseconds !== 'number') {
         throw new Error('waitForCondition expects second parameter to be number; ' + typeof (milliseconds) + ' given');
@@ -25,8 +34,8 @@ CommandAction.prototype.command = function(condition, milliseconds, timeout, mes
 
     if (!messages || typeof messages !== 'object') {
         messages = {
-            success: 'Condition was satisfied after ',
-            timeout: 'Timed out while waiting for condition after '
+            success: 'Url expected after ',
+            timeout: 'Timed out while waiting for url after '
         };
     }
 
@@ -35,21 +44,21 @@ CommandAction.prototype.command = function(condition, milliseconds, timeout, mes
     this.startTimer = new Date().getTime();
     this.cb = callback || function() {
     };
-    this.ms = milliseconds || 1000;
+    this.ms = milliseconds || 10000;
     this.timeout = timeout;
-    this.condition = condition;
+    this.url = url;
     this.messages = messages;
     this.check();
     return this;
 };
 
-CommandAction.prototype.check = function() {
+WaitForUrlToContain.prototype.check = function() {
     var self = this;
 
-    this.protocol.execute.call(this.client, this.condition, function(result) {
+    this.protocol.url(function(result) {
         var now = new Date().getTime();
 
-        if (result.status === 0 && result.value !== 'undefined') {
+        if (result.status === 0 && (result.value.indexOf(self.url) > -1)) {
             setTimeout(function() {
                 var msg = self.messages.success + (now - self.startTimer) + ' milliseconds.';
                 self.cb.call(self.client.api, result.value);
@@ -69,4 +78,4 @@ CommandAction.prototype.check = function() {
     });
 };
 
-module.exports = CommandAction;
+module.exports = WaitForUrlToContain;

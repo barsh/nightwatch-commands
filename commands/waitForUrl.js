@@ -1,7 +1,7 @@
 var util = require('util'),
     events = require('events');
 
-var CommandAction = function() {
+var WaitForUrl = function() {
     events.EventEmitter.call(this);
     this.startTimer = null;
     this.cb = null;
@@ -10,9 +10,18 @@ var CommandAction = function() {
     this.protocol = require('nightwatch/lib/api/protocol.js')(this.client);
 };
 
-util.inherits(CommandAction, events.EventEmitter);
+util.inherits(WaitForUrl, events.EventEmitter);
 
-CommandAction.prototype.command = function(condition, milliseconds, timeout, messages, callback) {
+/**
+ * Waiting for url expected
+ * @param  {[type]} url [url expected]
+ * @param  {[type]} milliseconds [time for close assert]
+ * @param  {[type]} timeout [time verify]
+ * @param  {[type]} messages [message output]
+ * @param  {Function} callback [callback]
+ * @return {[type]} [client]
+ */
+WaitForUrl.prototype.command = function(url, milliseconds, timeout, messages, callback) {
 
     if (milliseconds && typeof milliseconds !== 'number') {
         throw new Error('waitForCondition expects second parameter to be number; ' + typeof (milliseconds) + ' given');
@@ -25,8 +34,8 @@ CommandAction.prototype.command = function(condition, milliseconds, timeout, mes
 
     if (!messages || typeof messages !== 'object') {
         messages = {
-            success: 'Condition was satisfied after ',
-            timeout: 'Timed out while waiting for condition after '
+            success: 'Url expected after ',
+            timeout: 'Timed out while waiting for url after '
         };
     }
 
@@ -37,19 +46,19 @@ CommandAction.prototype.command = function(condition, milliseconds, timeout, mes
     };
     this.ms = milliseconds || 1000;
     this.timeout = timeout;
-    this.condition = condition;
+    this.url = url;
     this.messages = messages;
     this.check();
     return this;
 };
 
-CommandAction.prototype.check = function() {
+WaitForUrl.prototype.check = function() {
     var self = this;
 
-    this.protocol.execute.call(this.client, this.condition, function(result) {
+    this.protocol.url(function(result) {
         var now = new Date().getTime();
 
-        if (result.status === 0 && result.value !== 'undefined') {
+        if (result.status === 0 && result.value === self.url) {
             setTimeout(function() {
                 var msg = self.messages.success + (now - self.startTimer) + ' milliseconds.';
                 self.cb.call(self.client.api, result.value);
@@ -69,4 +78,4 @@ CommandAction.prototype.check = function() {
     });
 };
 
-module.exports = CommandAction;
+module.exports = WaitForUrl;

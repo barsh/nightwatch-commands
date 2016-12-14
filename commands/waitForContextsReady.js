@@ -12,10 +12,10 @@ var CommandAction = function() {
 
 util.inherits(CommandAction, events.EventEmitter);
 
-CommandAction.prototype.command = function(condition, milliseconds, timeout, messages, callback) {
+CommandAction.prototype.command = function(expectedContextsCount, milliseconds, timeout, messages, callback) {
 
     if (milliseconds && typeof milliseconds !== 'number') {
-        throw new Error('waitForCondition expects second parameter to be number; ' + typeof (milliseconds) + ' given');
+        throw new Error('waitForContextsReady expects second parameter to be number; ' + typeof (milliseconds) + ' given');
     }
 
     var lastArgument = Array.prototype.slice.call(arguments, 0).pop();
@@ -25,31 +25,30 @@ CommandAction.prototype.command = function(condition, milliseconds, timeout, mes
 
     if (!messages || typeof messages !== 'object') {
         messages = {
-            success: 'Condition was satisfied after ',
-            timeout: 'Timed out while waiting for condition after '
+            success: 'All contexts found after ',
+            timeout: 'Timed out while waiting for contexts after '
         };
     }
 
     timeout = timeout && typeof (timeout) !== 'function' && typeof (timeout) !== 'object' ? timeout : 0;
 
     this.startTimer = new Date().getTime();
-    this.cb = callback || function() {
-    };
+    this.cb = callback || function() {};
     this.ms = milliseconds || 1000;
     this.timeout = timeout;
-    this.condition = condition;
     this.messages = messages;
-    this.check();
+    this.check(expectedContextsCount);
     return this;
 };
 
-CommandAction.prototype.check = function() {
+CommandAction.prototype.check = function(expectedContextsCount) {
     var self = this;
 
-    this.protocol.execute.call(this.client, this.condition, function(result) {
+    this.protocol.contexts(function(result) {
         var now = new Date().getTime();
+        var contextsCount = result.value ? result.value.length : -1;
 
-        if (result.status === 0 && result.value !== 'undefined') {
+        if (expectedContextsCount === contextsCount) {
             setTimeout(function() {
                 var msg = self.messages.success + (now - self.startTimer) + ' milliseconds.';
                 self.cb.call(self.client.api, result.value);
@@ -58,7 +57,7 @@ CommandAction.prototype.check = function() {
             }, self.timeout);
         } else if (now - self.startTimer < self.ms) {
             setTimeout(function() {
-                self.check();
+                self.check(expectedContextsCount);
             }, 500);
         } else {
             var msg = self.messages.timeout + self.ms + ' milliseconds.';
